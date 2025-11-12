@@ -1,47 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:football_news/screens/newslist_form.dart';
+import 'package:football_news/screens/menu.dart';
+import 'package:football_news/screens/news_entry_list.dart'; 
+import 'package:football_news/screens/login.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
 
-// Widget ini adalah versi "ItemCard" yang sudah dipindahkan (refactor) ke folder widgets
 class ItemCard extends StatelessWidget {
-  final _MenuItem item;
-  const ItemCard({super.key, required this.item});
+  final ItemHomepage item;
+
+  const ItemCard(this.item, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      clipBehavior: Clip.antiAlias,
+    final request = context.watch<CookieRequest>(); 
+
+    return Material(
+      color: Theme.of(context).colorScheme.secondary,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         // Area responsif terhadap sentuhan
-        onTap: () {
-          // Memunculkan SnackBar ketika diklik (sesuai instruksi navigasi tombol)
+        onTap: () async { // <-- DIUBAH ke async
+          // Memunculkan SnackBar ketika diklik
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
               SnackBar(content: Text("Kamu telah menekan tombol ${item.name}!")),
             );
 
-          // Mengisi TODO di tutorial:
-          // Navigate ke route yang sesuai (tergantung jenis tombol)
           if (item.name == "Add News") {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const NewsFormPage()),
             );
           }
+          else if (item.name == "See Football News") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NewsEntryListPage(),
+              ),
+            );
+          }
+          else if (item.name == "Logout") {
+            final response = await request.logout(
+              "http://localhost:8000/auth/logout/",
+            );
+            String message = response["message"];
+            if (context.mounted) {
+              if (response['status']) {
+                String uname = response["username"];
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("$message See you again, $uname.")),
+                );
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              }
+            }
+          }
         },
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: Center(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(item.icon, size: 48),
-                const SizedBox(height: 8),
+                Icon(item.icon, color: Colors.white, size: 30.0),
+                const Padding(padding: EdgeInsets.all(3)),
                 Text(
                   item.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
                 ),
               ],
             ),
@@ -51,16 +86,3 @@ class ItemCard extends StatelessWidget {
     );
   }
 }
-
-// Helper kecil untuk daftar item di menu (nama + ikon)
-class _MenuItem {
-  final String name;
-  final IconData icon;
-  const _MenuItem({required this.name, required this.icon});
-}
-
-// Ekspor list contoh item (agar bisa dipakai di menu.dart seperti pada tutorial sebelumnya)
-const List<_MenuItem> kMenuItems = [
-  _MenuItem(name: 'Add News', icon: Icons.post_add),
-  _MenuItem(name: 'Dummy Button', icon: Icons.list_alt),
-];
